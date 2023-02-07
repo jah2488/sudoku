@@ -437,11 +437,13 @@ fn main() {
             ..default()
         }))
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(WorldInspectorPlugin)
         .insert_resource(GameState {
             current_cell: Val::Unknown,
             last_cell: Val::Unknown,
             graph: g,
             grid_filled: false,
+            selected_cells: Vec::new(),
         })
         .add_startup_system(setup)
         .add_system(grid_fill_system)
@@ -456,6 +458,7 @@ use bevy::{
     prelude::*,
     window::{CursorGrabMode, PresentMode},
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 // A unit struct to help identify the FPS UI component, since there may be many Text components
 #[derive(Component)]
@@ -490,6 +493,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         }),
         ColorText,
+        Name::new("Info Panel"),
     ));
     // Text with multiple sections
     commands.spawn((
@@ -510,6 +514,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             }),
         ]),
         FpsText,
+        Name::new("FPS Text"),
     ));
 
     commands.spawn(SpriteBundle {
@@ -548,14 +553,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                size: Size::new(bevy::ui::Val::Percent(100.0), bevy::ui::Val::Percent(100.0)),
-                justify_content: JustifyContent::SpaceBetween,
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(bevy::ui::Val::Percent(100.0), bevy::ui::Val::Percent(100.0)),
+                    justify_content: JustifyContent::SpaceBetween,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        })
+            Name::new("Grid"),
+        ))
         .with_children(|parent| {
             let mut i = 1;
             let l = 100; // Left Margin
@@ -581,6 +589,7 @@ struct GameState {
     last_cell: Val,
     graph: Graph,
     grid_filled: bool,
+    selected_cells: Vec<i32>,
 }
 
 fn ceil(x: i32, y: i32) -> i32 {
@@ -608,37 +617,43 @@ fn spawn_cell(parent: &mut ChildBuilder, i: i32, x: i32, y: i32, asset_server: &
     };
 
     parent
-        .spawn(NodeBundle {
-            style: Style {
-                size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    left: bevy::ui::Val::Px(x as f32),
-                    top: bevy::ui::Val::Px(y as f32),
-                    ..default()
-                },
-                border: rect,
-                ..default()
-            },
-            background_color: Color::rgb(0.4, 0.4, 1.0).into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent
-                .spawn(ButtonBundle {
-                    style: Style {
-                        size: Size::new(
-                            bevy::ui::Val::Percent(100.0),
-                            bevy::ui::Val::Percent(100.0),
-                        ),
-                        margin: UiRect::all(bevy::ui::Val::Auto),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::SpaceAround,
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
+                    position_type: PositionType::Absolute,
+                    position: UiRect {
+                        left: bevy::ui::Val::Px(x as f32),
+                        top: bevy::ui::Val::Px(y as f32),
                         ..default()
                     },
-                    background_color: Color::rgb(0.8, 0.8, 1.0).into(),
+                    border: rect,
                     ..default()
-                })
+                },
+                background_color: Color::rgb(0.4, 0.4, 1.0).into(),
+                ..default()
+            },
+            Name::new(i.to_string()),
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            size: Size::new(
+                                bevy::ui::Val::Percent(100.0),
+                                bevy::ui::Val::Percent(100.0),
+                            ),
+                            margin: UiRect::all(bevy::ui::Val::Auto),
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::SpaceAround,
+                            ..default()
+                        },
+                        background_color: Color::rgb(0.8, 0.8, 1.0).into(),
+                        ..default()
+                    },
+                    Name::new(i.to_string()),
+                ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         i.to_string(),
