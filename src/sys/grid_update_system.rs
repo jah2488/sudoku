@@ -8,8 +8,10 @@ pub struct GridCell {
     pub x: u8,
     pub y: u8,
     pub value: u8,
+    pub mutable: bool,
     pub selected: bool,
     pub hovered: bool,
+    pub invalid: bool,
 }
 
 #[derive(Component)]
@@ -24,13 +26,21 @@ pub fn grid_update_system(
     for (mut cell, children) in &mut query.iter_mut() {
         game_state.graph.index(cell.index).map(|gc| {
             cell.value = gc.value;
+            cell.mutable = gc.value == 0;
         });
+
+        let mut invalid_cells = game_state.graph.invalid_cells();
+        invalid_cells.retain(|c| c.x == cell.x && c.y == cell.y);
 
         for &child in children.iter() {
             let button = b_query.get_mut(child);
             match button {
                 Ok((_, mut color, btn_children)) => {
                     *color = Color::rgb(0.15, 0.15, 0.15).into();
+
+                    if invalid_cells.len() > 0 {
+                        *color = Color::rgb(0.85, 0.15, 0.15).into();
+                    }
 
                     if game_state.cursor_pos == cell.index {
                         *color = Color::rgb(0.35, 0.15, 0.75).into();
@@ -44,7 +54,7 @@ pub fn grid_update_system(
                         *color = Color::rgb(0.35, 0.75, 0.35).into();
                     }
 
-                    if game_state.focus_value == to_val(cell.value) {
+                    if game_state.focus_value == to_val(cell.value) && cell.value != 0 {
                         *color = Color::rgb(0.85, 0.15, 0.15).into();
                     }
 
@@ -52,7 +62,11 @@ pub fn grid_update_system(
                         let text = t_query.get_mut(btn_child);
                         match text {
                             Ok(mut txt) => {
-                                txt.sections[0].value = cell.value.to_string();
+                                if cell.value == 0 {
+                                    txt.sections[0].value = "".to_string();
+                                } else {
+                                    txt.sections[0].value = cell.value.to_string();
+                                }
                             }
                             Err(_) => {}
                         }

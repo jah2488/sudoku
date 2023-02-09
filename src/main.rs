@@ -6,7 +6,9 @@ use crate::rsc::game_state::GameState;
 use crate::sys::button_system::button_system;
 use crate::sys::grid_fill_system::grid_fill_system;
 
-use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode};
+use bevy::{
+    diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode, winit::WinitSettings,
+};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use sys::{
     grid_update_system::{GridCell, GridLabel},
@@ -16,12 +18,12 @@ use sys::{
 fn main() {
     println!("Welcome to Sudoku!");
 
-    let mut g = Graph::new();
-    g.generate();
+    let g = Graph::make_puzzle(20);
 
     println!("{:?}", g);
 
     App::new()
+        .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "Sudoku!".to_string(),
@@ -193,6 +195,8 @@ fn spawn_cell(
             value: 0,
             selected: false,
             hovered: false,
+            mutable: false,
+            invalid: false,
         },
         Name::new(i.to_string()),
     ));

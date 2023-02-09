@@ -231,6 +231,35 @@ impl Graph {
         }
         return options().difference(&vals).cloned().collect();
     }
+
+    pub fn invalid_cells(&self) -> Vec<Cell> {
+        let mut invalid: Vec<Cell> = Vec::new();
+        for cell in &self.cells {
+            if cell.value == 0 {
+                continue;
+            }
+            if !cell.is_valid(self) {
+                invalid.push(cell.clone());
+            }
+        }
+        return invalid;
+    }
+
+    pub fn make_puzzle(remaining_clues: u8) -> Graph {
+        let mut graph = Graph::new();
+        graph.generate();
+        let mut rng = rand::thread_rng();
+        let mut i = 81;
+        while i > remaining_clues {
+            let idx = rng.gen_range(0..81);
+            let cell = graph.cells.get_mut(idx).unwrap();
+            if cell.value != 0 {
+                cell.value = 0;
+                i -= 1;
+            }
+        }
+        return graph;
+    }
 }
 
 //□  ■  ▲  ▼  ◆  ◇  ●  ○  ★  ☆
