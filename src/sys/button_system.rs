@@ -1,6 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{core::value::to_val, rsc::game_state::GameState};
+use crate::{
+    core::value::to_val,
+    rsc::game_state::{GameState, MouseState},
+};
+
+use super::grid_update_system::GridCell;
 
 pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
@@ -9,49 +14,34 @@ pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub fn button_system(
     mut game_state: ResMut<GameState>,
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &Children),
+        (&Interaction, &mut BackgroundColor, &Parent),
         (Changed<Interaction>, With<Button>),
     >,
-    mut text_query: Query<&mut Text>,
+    mut cell_query: Query<&mut GridCell>,
 ) {
-    for (interaction, mut color, children) in &mut interaction_query {
+    for (interaction, mut color, parent) in &mut interaction_query {
+        let mut cell = cell_query.get_mut(parent.get()).unwrap();
         match *interaction {
             Interaction::Clicked => {
-                let text = text_query
-                    .get_mut(children[0])
-                    .unwrap()
-                    .into_inner()
-                    .sections[0]
-                    .value
-                    .clone();
                 game_state.last_cell = game_state.current_cell;
-                game_state.current_cell = to_val(text.parse::<u8>().unwrap());
+                game_state.current_cell = to_val(cell.value);
 
+                cell.selected = true;
                 *color = PRESSED_BUTTON.into();
             }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
+            Interaction::Hovered => match game_state.mouse {
+                MouseState::Pressed => {
+                    cell.selected = true;
+                }
+                MouseState::Released => {
+                    cell.hovered = true;
+                }
+                MouseState::None => {
+                    cell.hovered = true;
+                }
+            },
             Interaction::None => {
-                // let text = text_query
-                //     .get_mut(children[0])
-                //     .unwrap()
-                //     .into_inner()
-                //     .sections[0]
-                //     .value
-                //     .clone();
-
-                // let cell = game_state.graph.index(text.parse::<u8>().unwrap());
-
-                // match cell {
-                //     Some(cell) => {
-                //         // println!("[{}]: ({},{})=>{}", text, cell.x, cell.y, cell.value);
-                //         text_query.get_mut(children[0]).unwrap().sections[0].value =
-                //             cell.value.to_string();
-                //     }
-                //     None => {}
-                // }
-
+                cell.hovered = false;
                 *color = NORMAL_BUTTON.into();
             }
         }

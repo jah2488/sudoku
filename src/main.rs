@@ -1,16 +1,17 @@
 mod core;
 mod rsc;
 mod sys;
-use crate::core::graph::Graph;
 use crate::core::value::Value;
 use crate::rsc::game_state::GameState;
 use crate::sys::button_system::button_system;
 use crate::sys::grid_fill_system::grid_fill_system;
+use crate::{core::graph::Graph, rsc::game_state::MouseState};
 
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use sys::{
     button_system::NORMAL_BUTTON,
+    grid_update_system::{GridCell, GridLabel},
     text::{ColorText, FpsText},
 };
 
@@ -39,18 +40,25 @@ fn main() {
             current_cell: Value::Unknown,
             last_cell: Value::Unknown,
             graph: g,
-            grid_filled: false,
+            entities: Vec::new(),
             selected_cells: Vec::new(),
+            mouse: MouseState::None,
         })
         .add_startup_system(setup)
-        .add_system(grid_fill_system)
+        .add_startup_system(grid_fill_system)
+        .add_system(sys::grid_update_system::grid_update_system)
         .add_system(sys::text::text_update_system)
         .add_system(sys::text::text_color_system)
         .add_system(button_system)
+        .add_system(sys::input::mouse_system)
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    mut game_state: ResMut<GameState>,
+    asset_server: Res<AssetServer>,
+) {
     commands.spawn(Camera2dBundle::default());
     commands.spawn((
         // Create a TextBundle that has a Text with a single section.
@@ -148,19 +156,19 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .with_children(|parent| {
             let mut i = 1;
-            let l = 100; // Left Margin
+            let l = 200; // Left Margin
             let t = 1; // Top Margin
             let w = 100; // Width
             let h = 100; // Height
             let y = 9; // Row Length
             while i <= 81 {
-                spawn_cell(
+                game_state.entities.push(spawn_cell(
                     parent,
                     i,
                     l + (w * (1 + ((i - 1) % y))),
                     t + (h * (0 + ceil(i, y))),
                     &asset_server,
-                );
+                ));
                 i += 1;
             }
         });
@@ -170,7 +178,13 @@ fn ceil(x: i32, y: i32) -> i32 {
     (x + y - 1) / y
 }
 
-fn spawn_cell(parent: &mut ChildBuilder, i: i32, x: i32, y: i32, asset_server: &Res<AssetServer>) {
+fn spawn_cell(
+    parent: &mut ChildBuilder,
+    i: i32,
+    x: i32,
+    y: i32,
+    asset_server: &Res<AssetServer>,
+) -> Entity {
     let show_right = (i % 3) == 0;
     let show_top = i > 0 && i < 10 || i > 27 && i < 37 || i > 54 && i < 64;
     let show_bottom = i > 18 && i < 28 || i > 45 && i < 55 || i > 72 && i < 82;
@@ -190,53 +204,64 @@ fn spawn_cell(parent: &mut ChildBuilder, i: i32, x: i32, y: i32, asset_server: &
         }),
     };
 
-    parent
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
-                    position_type: PositionType::Absolute,
-                    position: UiRect {
-                        left: bevy::ui::Val::Px(x as f32),
-                        top: bevy::ui::Val::Px(y as f32),
-                        ..default()
-                    },
-                    border: rect,
+    let mut cmds = parent.spawn((
+        NodeBundle {
+            style: Style {
+                size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
+                position_type: PositionType::Absolute,
+                position: UiRect {
+                    left: bevy::ui::Val::Px(x as f32),
+                    top: bevy::ui::Val::Px(y as f32),
                     ..default()
                 },
-                background_color: Color::rgb(0.4, 0.4, 1.0).into(),
+                border: rect,
                 ..default()
             },
-            Name::new(i.to_string()),
-        ))
-        .with_children(|parent| {
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            size: Size::new(
-                                bevy::ui::Val::Percent(100.0),
-                                bevy::ui::Val::Percent(100.0),
-                            ),
-                            margin: UiRect::all(bevy::ui::Val::Auto),
-                            align_items: AlignItems::Center,
-                            justify_content: JustifyContent::SpaceAround,
-                            ..default()
-                        },
-                        background_color: Color::rgb(0.8, 0.8, 1.0).into(),
+            background_color: Color::rgb(0.4, 0.4, 1.0).into(),
+            ..default()
+        },
+        GridCell {
+            index: i as u8,
+            x: (i % 9) as u8,
+            y: (i / 9) as u8,
+            value: 0,
+            selected: false,
+            hovered: false,
+        },
+        Name::new(i.to_string()),
+    ));
+    cmds.with_children(|parent| {
+        parent
+            .spawn((
+                ButtonBundle {
+                    style: Style {
+                        size: Size::new(
+                            bevy::ui::Val::Percent(100.0),
+                            bevy::ui::Val::Percent(100.0),
+                        ),
+                        margin: UiRect::all(bevy::ui::Val::Auto),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::SpaceAround,
                         ..default()
                     },
-                    Name::new(i.to_string()),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
+                    background_color: Color::rgb(0.8, 0.8, 1.0).into(),
+                    ..default()
+                },
+                Name::new(i.to_string()),
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    TextBundle::from_section(
                         i.to_string(),
                         TextStyle {
                             font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                             font_size: 40.0,
                             color: Color::rgb(0.9, 0.9, 0.9),
                         },
-                    ));
-                });
-        });
+                    ),
+                    GridLabel,
+                ));
+            });
+    });
+    return cmds.id();
 }
