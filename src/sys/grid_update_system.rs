@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{core::value::Value, rsc::game_state::GameState};
+use crate::rsc::game_state::GameState;
 
 #[derive(Component)]
 pub struct GridCell {
@@ -31,6 +31,10 @@ pub fn grid_update_system(
             match button {
                 Ok((_, mut color, btn_children)) => {
                     *color = Color::rgb(0.15, 0.15, 0.15).into();
+
+                    if game_state.cursor_pos == cell.index {
+                        *color = Color::rgb(0.35, 0.15, 0.75).into();
+                    }
 
                     if cell.hovered {
                         *color = Color::rgb(0.25, 0.25, 0.25).into();

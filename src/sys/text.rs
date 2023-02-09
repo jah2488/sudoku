@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::rsc::game_state::GameState;
+use crate::rsc::game_state::{GameState, Tools};
 
 // A unit struct to help identify the FPS UI component, since there may be many Text components
 #[derive(Component)]
@@ -21,9 +21,18 @@ pub fn text_color_system(
     for mut text in &mut query {
         let seconds = time.elapsed_seconds();
 
+        let str = match game_state.tool {
+            Tools::Select => "Select",
+            Tools::CenterMark => "Center",
+            Tools::CornerMark => "Corner",
+            Tools::Fill => "Fill",
+            Tools::Erase => "Erase",
+            Tools::None => "None",
+        };
+
         text.sections[0].value = format!(
-            "C: {}\n P: {}",
-            game_state.current_cell, game_state.last_cell
+            "{}\nC: {}\nP: {}",
+            str, game_state.current_cell, game_state.last_cell
         );
         text.sections[0].style.color = Color::Rgba {
             red: (1.25 * seconds).sin() / 2.0 + 0.5,

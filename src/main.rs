@@ -1,14 +1,14 @@
 mod core;
 mod rsc;
 mod sys;
-use crate::core::value::Value;
+use crate::core::graph::Graph;
 use crate::rsc::game_state::GameState;
 use crate::sys::button_system::button_system;
 use crate::sys::grid_fill_system::grid_fill_system;
-use crate::{core::graph::Graph, rsc::game_state::MouseState};
 
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use rsc::game_state::Tools;
 use sys::{
     button_system::NORMAL_BUTTON,
     grid_update_system::{GridCell, GridLabel},
@@ -36,14 +36,7 @@ fn main() {
         }))
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(WorldInspectorPlugin)
-        .insert_resource(GameState {
-            current_cell: Value::Unknown,
-            last_cell: Value::Unknown,
-            graph: g,
-            entities: Vec::new(),
-            selected_cells: Vec::new(),
-            mouse: MouseState::None,
-        })
+        .insert_resource(GameState::new(g))
         .add_startup_system(setup)
         .add_startup_system(grid_fill_system)
         .add_system(sys::grid_update_system::grid_update_system)
@@ -51,6 +44,8 @@ fn main() {
         .add_system(sys::text::text_color_system)
         .add_system(button_system)
         .add_system(sys::input::mouse_system)
+        .add_system(sys::input::keyboard_system)
+        .add_system(sys::actions::action_system)
         .run();
 }
 
@@ -67,11 +62,11 @@ fn setup(
             "hello\nbevy!",
             TextStyle {
                 font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                font_size: 100.0,
+                font_size: 80.0,
                 color: Color::WHITE,
             },
         ) // Set the alignment of the Text
-        .with_text_alignment(TextAlignment::TOP_CENTER)
+        .with_text_alignment(TextAlignment::TOP_LEFT)
         // Set the style of the TextBundle itself.
         .with_style(Style {
             position_type: PositionType::Absolute,
@@ -115,33 +110,6 @@ fn setup(
         },
         ..default()
     });
-    commands
-        .spawn(ButtonBundle {
-            style: Style {
-                size: Size::new(::bevy::ui::Val::Px(150.0), bevy::ui::Val::Px(65.0)),
-                // center button
-                margin: UiRect::all(bevy::ui::Val::Auto),
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                border: UiRect::all(bevy::ui::Val::Px(1.0)),
-                ..default()
-            },
-            background_color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                "9",
-                TextStyle {
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 40.0,
-                    color: Color::rgb(0.9, 0.9, 0.9),
-                },
-            ));
-        });
-
     commands
         .spawn((
             NodeBundle {
