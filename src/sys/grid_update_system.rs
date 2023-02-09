@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::rsc::game_state::GameState;
+use crate::{core::value::to_val, rsc::game_state::GameState};
 
 #[derive(Component)]
 pub struct GridCell {
@@ -40,8 +40,12 @@ pub fn grid_update_system(
                         *color = Color::rgb(0.25, 0.25, 0.25).into();
                     }
 
-                    if cell.selected {
+                    if game_state.selected_cells.contains(&cell.index) {
                         *color = Color::rgb(0.35, 0.75, 0.35).into();
+                    }
+
+                    if game_state.focus_value == to_val(cell.value) {
+                        *color = Color::rgb(0.85, 0.15, 0.15).into();
                     }
 
                     for &btn_child in btn_children.iter() {

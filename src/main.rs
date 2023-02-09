@@ -8,9 +8,7 @@ use crate::sys::grid_fill_system::grid_fill_system;
 
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use rsc::game_state::Tools;
 use sys::{
-    button_system::NORMAL_BUTTON,
     grid_update_system::{GridCell, GridLabel},
     text::{ColorText, FpsText},
 };
@@ -39,11 +37,11 @@ fn main() {
         .insert_resource(GameState::new(g))
         .add_startup_system(setup)
         .add_startup_system(grid_fill_system)
-        .add_system(sys::grid_update_system::grid_update_system)
+        .add_system(sys::input::mouse_system)
+        .add_system(button_system)
+        .add_system(sys::grid_update_system::grid_update_system.after(button_system))
         .add_system(sys::text::text_update_system)
         .add_system(sys::text::text_color_system)
-        .add_system(button_system)
-        .add_system(sys::input::mouse_system)
         .add_system(sys::input::keyboard_system)
         .add_system(sys::actions::action_system)
         .run();

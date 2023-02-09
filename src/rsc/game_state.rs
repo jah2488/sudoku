@@ -35,31 +35,33 @@ pub enum Action {
 
 #[derive(Resource)]
 pub struct GameState {
-    pub current_cell: Value,
-    pub last_cell: Value,
-    pub graph: Graph,
-    pub entities: Vec<Entity>,
-    pub selected_cells: Vec<i32>,
-    pub mouse: MouseState,
-    pub tool: Tools,
-    pub modifier: Modifier,
-    pub cursor_pos: u8,
     pub action: Action,
+    pub current_cell: Value,
+    pub cursor_pos: u8,
+    pub entities: Vec<Entity>,
+    pub focus_value: Value,
+    pub graph: Graph,
+    pub last_cell: Value,
+    pub modifier: Modifier,
+    pub mouse: MouseState,
+    pub selected_cells: Vec<u8>,
+    pub tool: Tools,
 }
 
 impl GameState {
     pub fn new(graph: Graph) -> Self {
         Self {
-            current_cell: Value::Unknown,
-            last_cell: Value::Unknown,
-            graph: graph,
-            entities: Vec::new(),
-            selected_cells: Vec::new(),
-            mouse: MouseState::None,
-            tool: Tools::None,
-            modifier: Modifier::None,
-            cursor_pos: 0,
             action: Action::None,
+            current_cell: Value::Unknown,
+            cursor_pos: 0,
+            entities: Vec::new(),
+            focus_value: Value::Unknown,
+            graph: graph,
+            last_cell: Value::Unknown,
+            modifier: Modifier::None,
+            mouse: MouseState::None,
+            selected_cells: Vec::new(),
+            tool: Tools::None,
         }
     }
 }
