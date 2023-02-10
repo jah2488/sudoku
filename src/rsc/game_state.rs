@@ -95,6 +95,13 @@ impl GameState {
         self.graph = new_graph;
     }
 
+    pub fn solve(&mut self) {
+        let new_graph = self.graph.solve().to_owned();
+        println!("Solved graph:\n{:?}", new_graph);
+        self.snapshot();
+        self.graph = new_graph;
+    }
+
     pub fn snapshot(&mut self) {
         self.history.truncate(self.history_cursor + 1);
         self.history

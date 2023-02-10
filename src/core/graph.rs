@@ -246,7 +246,55 @@ impl Graph {
         return invalid;
     }
 
-    pub fn solve_puzzle(&self) -> &Graph {
+    pub fn solve(&self) -> &Graph {
+        // let max_depth = 1_000_000;
+        // let mut depth = 0;
+        let mut rng = rand::thread_rng();
+        let mut graph: Graph;
+        let mut invalid_moves: HashMap<(u8, u8), Vec<Value>> = HashMap::new();
+        let mut current: Cell;
+        let mut previous: Cell;
+
+        let empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
+        while empty_cells > 0 {
+            graph = self.clone();
+            let vals: HashSet<Value> = HashSet::new();
+            let mut cells: Vec<Cell> = graph
+                .cells
+                .iter()
+                .filter(|c| c.value == 0)
+                .cloned()
+                .collect();
+            cells.shuffle(&mut rng);
+
+            let mut cell = cells.get(0).unwrap().to_owned();
+            let set = graph.possible_values(&cell, vals);
+            let mut v: Vec<Value> = Vec::new();
+            for n in set {
+                match invalid_moves.get(&(cell.x, cell.y)) {
+                    Some(moves) => {
+                        if !moves.contains(&n) {
+                            v.push(n);
+                        }
+                    }
+                    None => {
+                        v.push(n);
+                        invalid_moves.insert((cell.x, cell.y), vec![]);
+                    }
+                }
+            }
+            v.shuffle(&mut rng);
+            let choice = v.get(0).cloned();
+            match choice {
+                Some(num) => {
+                    if cell.mutable {
+                        cell.value = from_val(num);
+                    }
+                }
+                None => {}
+            }
+        }
+
         return self;
     }
 

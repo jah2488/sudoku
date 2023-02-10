@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    core::{cell, value::from_val},
+    core::value::from_val,
     rsc::game_state::{Action, GameState},
 };
 
@@ -20,8 +20,6 @@ pub fn action_system(mut game_state: ResMut<GameState>, mut cell_query: Query<&m
             game_state.action = Action::None;
             let cells = game_state.selected_cells.clone();
             for index in cells {
-                // TODO: -- Keep track of all previous board states
-                // TODO: -- Allow player to undo
                 if cell_query
                     .iter()
                     .find(|c| c.index == index)
@@ -46,6 +44,12 @@ pub fn action_system(mut game_state: ResMut<GameState>, mut cell_query: Query<&m
             game_state.action = Action::None;
             game_state.generate();
         }
+
+        Action::Solve => {
+            game_state.action = Action::None;
+            game_state.solve();
+        }
+
         _ => {}
     }
 }
