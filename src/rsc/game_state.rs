@@ -1,8 +1,4 @@
-use bevy::{
-    prelude::*,
-    reflect::{GetTypeRegistration, TypeRegistration},
-};
-use bevy_inspector_egui::prelude::ReflectInspectorOptions;
+use bevy::{prelude::*, utils::HashSet};
 
 use crate::{
     core::{graph::Graph, value::Value},
@@ -66,7 +62,7 @@ pub struct GameState {
     pub last_cell: Value,
     pub modifier: Modifier,
     pub mouse: MouseState,
-    pub selected_cells: Vec<u8>,
+    pub selected_cells: HashSet<u8>,
     pub tool: Tools,
 }
 
@@ -85,9 +81,18 @@ impl GameState {
             last_cell: Value::Unknown,
             modifier: Modifier::None,
             mouse: MouseState::None,
-            selected_cells: Vec::new(),
+            selected_cells: HashSet::new(),
             tool: Tools::None,
         }
+    }
+
+    pub fn generate(&mut self) {
+        let new_graph = Graph::make_puzzle(40);
+        println!("Generated new graph:\n{:?}", new_graph);
+        self.graph_marked = Vec::new();
+        self.history = Vec::new();
+        self.history_cursor = 0;
+        self.graph = new_graph;
     }
 
     pub fn snapshot(&mut self) {

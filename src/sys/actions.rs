@@ -41,6 +41,11 @@ pub fn action_system(mut game_state: ResMut<GameState>, mut cell_query: Query<&m
             game_state.action = Action::None;
             game_state.redo();
         }
+
+        Action::Generate => {
+            game_state.action = Action::None;
+            game_state.generate();
+        }
         _ => {}
     }
 }

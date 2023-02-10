@@ -5,6 +5,8 @@ use bevy::{
 
 use crate::rsc::game_state::{GameState, Tools};
 
+use super::grid_update_system::GridCell;
+
 // A unit struct to help identify the FPS UI component, since there may be many Text components
 #[derive(Component)]
 pub struct FpsText;
@@ -15,7 +17,7 @@ pub struct ColorText;
 
 pub fn text_color_system(
     time: Res<Time>,
-    game_state: ResMut<GameState>,
+    mut game_state: ResMut<GameState>,
     mut query: Query<&mut Text, With<ColorText>>,
 ) {
     for mut text in &mut query {
@@ -30,10 +32,14 @@ pub fn text_color_system(
             Tools::None => "None",
         };
 
-        text.sections[0].value = format!(
-            "{}\nC: {}\nP: {}",
-            str, game_state.current_cell, game_state.last_cell
-        );
+        let selection = game_state.selected_cells.clone();
+
+        let total = selection
+            .iter()
+            .map(|&i| game_state.graph.index(i).map(|gc| gc.value).unwrap_or(0))
+            .sum::<u8>();
+
+        text.sections[0].value = format!("{}\nS: {}\nP: {}", str, total, game_state.last_cell);
         text.sections[0].style.color = Color::Rgba {
             red: (1.25 * seconds).sin() / 2.0 + 0.5,
             green: (0.75 * seconds).sin() / 2.0 + 0.5,

@@ -35,7 +35,7 @@ pub fn button_system(
                 game_state.current_cell = to_val(cell.value);
 
                 let cell = cell_query.get_mut(parent.get()).unwrap();
-                game_state.selected_cells.push(cell.index);
+                game_state.selected_cells.insert(cell.index);
 
                 match game_state.modifier {
                     Modifier::Shift => {}
@@ -54,7 +54,7 @@ pub fn button_system(
             Interaction::Hovered => match game_state.mouse {
                 MouseState::Pressed => {
                     let cell = cell_query.get_mut(parent.get()).unwrap();
-                    game_state.selected_cells.push(cell.index);
+                    game_state.selected_cells.insert(cell.index);
                 }
                 MouseState::Released => {
                     let mut cell = cell_query.get_mut(parent.get()).unwrap();

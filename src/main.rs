@@ -41,7 +41,6 @@ fn main() {
     println!("{:?}", g);
 
     App::new()
-        .init_resource::<GameState>()
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
@@ -75,18 +74,15 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
     commands.spawn((
-        // Create a TextBundle that has a Text with a single section.
         TextBundle::from_section(
-            // Accepts a `String` or any type that converts into a `String`, such as `&str`
-            "hello\nbevy!",
+            "debug",
             TextStyle {
                 font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                font_size: 80.0,
+                font_size: 60.0,
                 color: Color::WHITE,
             },
         ) // Set the alignment of the Text
         .with_text_alignment(TextAlignment::TOP_LEFT)
-        // Set the style of the TextBundle itself.
         .with_style(Style {
             position_type: PositionType::Absolute,
             position: UiRect {
@@ -99,9 +95,8 @@ fn setup(
         ColorText,
         Name::new("Info Panel"),
     ));
-    // Text with multiple sections
+
     commands.spawn((
-        // Create a TextBundle that has a Text with a list of sections.
         TextBundle::from_sections([
             TextSection::new(
                 "FPS: ",
@@ -121,14 +116,6 @@ fn setup(
         Name::new("FPS Text"),
     ));
 
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            color: Color::rgb(0.25, 0.25, 0.75),
-            custom_size: Some(Vec2::new(50.0, 100.0)),
-            ..default()
-        },
-        ..default()
-    });
     commands
         .spawn((
             NodeBundle {

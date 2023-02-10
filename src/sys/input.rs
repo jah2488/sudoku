@@ -23,8 +23,11 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
         game_state.action = Action::ClearSelection;
     }
 
+    if keyboard.just_released(KeyCode::Tab) {
+        game_state.action = Action::Generate;
+    }
+
     if keyboard.just_released(KeyCode::Space) {
-        println!("Space released");
         game_state.tool = match game_state.tool {
             Tools::Select => Tools::CornerMark,
             Tools::CornerMark => Tools::CenterMark,
