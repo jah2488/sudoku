@@ -20,20 +20,26 @@ pub fn action_system(mut game_state: ResMut<GameState>, mut cell_query: Query<&m
             game_state.action = Action::None;
             let cells = game_state.selected_cells.clone();
             for index in cells {
-                //TODO: Player filled cells should be visually different
-                // -- Player cannot delete starting cells
-                // -- Keep track of all previous board states
-                // -- Allow player to undo
+                // TODO: -- Keep track of all previous board states
+                // TODO: -- Allow player to undo
                 if cell_query
                     .iter()
                     .find(|c| c.index == index)
                     .unwrap()
                     .mutable
-                    == true
                 {
+                    game_state.snapshot();
                     game_state.graph.index(index.clone()).unwrap().value = from_val(value);
                 }
             }
+        }
+        Action::Undo => {
+            game_state.action = Action::None;
+            game_state.undo();
+        }
+        Action::Redo => {
+            game_state.action = Action::None;
+            game_state.redo();
         }
         _ => {}
     }

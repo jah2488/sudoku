@@ -10,6 +10,7 @@ pub struct Cell {
     pub x: u8,
     pub y: u8,
     pub value: u8,
+    pub mutable: bool,
     pub neighbors: HashSet<Point>,
 }
 

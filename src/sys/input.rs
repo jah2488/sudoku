@@ -64,6 +64,7 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
                 game_state.cursor_pos = game_state.cursor_pos - 1;
             }
         }
+        game_state.action = Action::Undo
     }
 
     if keyboard.just_pressed(KeyCode::Right) {
@@ -72,6 +73,7 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
                 game_state.cursor_pos = game_state.cursor_pos + 1;
             }
         }
+        game_state.action = Action::Redo
     }
 
     if keyboard.just_pressed(KeyCode::Up) {
@@ -117,6 +119,4 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
             }
         }
     }
-
-    //todo: add arrow keys and num keys, also add all modifier keys (shift, ctrl, alt, etc.)
 }

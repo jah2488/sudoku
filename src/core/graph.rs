@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 use crate::core::cell::{Cell, Point};
 use crate::core::value::{from_val, options, to_val, Value};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Graph {
     pub cells: Vec<Cell>,
 }
@@ -19,6 +19,7 @@ impl Graph {
                     x,
                     y,
                     value: 0,
+                    mutable: true,
                     neighbors: HashSet::new(),
                 };
                 g.cells.push(c);
@@ -137,7 +138,9 @@ impl Graph {
             let mut xi = i;
             while xi < 81 {
                 let mut cell = self.cells.get_mut(xi).unwrap();
-                cell.value = 0;
+                if cell.mutable {
+                    cell.value = 0;
+                }
                 xi += 1;
                 match invalid_moves.get(&xi) {
                     Some(_) => {
@@ -169,7 +172,9 @@ impl Graph {
 
             match choice {
                 Some(num) => {
-                    cell.value = from_val(num);
+                    if cell.mutable {
+                        cell.value = from_val(num);
+                    }
                 }
                 None => {
                     let last_cell = self.cells.get(i - 1).unwrap();
@@ -207,42 +212,42 @@ impl Graph {
                     }
                 }
             }
-
-            if cell.is_valid(&graph) {
-                i += 1;
-                //let ten_millis = Duration::from_millis(20);
-                //thread::sleep(ten_millis);
-                //print!("{}[2J", 27 as char);
-                //println!("{}=>{:?}\n", i, invalid_moves.get(&(i)));
-                //println!("{:?}", self);
-                //invalid_moves.clone().into_iter().for_each(|(k, v)| {
-                //    println!("{}: {:?}", k, v);
-                //});
-            } else {
-                cell.value = 0;
-                i = 1;
-            }
+            i += 1;
         }
     }
 
-    fn possible_values(&mut self, cell: &Cell, mut vals: HashSet<Value>) -> HashSet<Value> {
+    fn possible_values(&self, cell: &Cell, mut vals: HashSet<Value>) -> HashSet<Value> {
         for n in &cell.neighbors {
             vals.insert(to_val(self.at(n.x, n.y).unwrap().value));
         }
         return options().difference(&vals).cloned().collect();
     }
 
-    pub fn invalid_cells(&self) -> Vec<Cell> {
-        let mut invalid: Vec<Cell> = Vec::new();
+    pub fn point_to_index(&self, x: u8, y: u8) -> u8 {
+        return (y - 1) * 9 + x;
+    }
+
+    pub fn invalid_cells(&self) -> Vec<u8> {
+        let mut invalid: Vec<u8> = Vec::new();
         for cell in &self.cells {
             if cell.value == 0 {
                 continue;
             }
-            if !cell.is_valid(self) {
-                invalid.push(cell.clone());
+            for n in &cell.neighbors {
+                let n = self.at(n.x, n.y).unwrap();
+                if cell.x == n.x && cell.y == n.y {
+                    continue;
+                }
+                if n.value == cell.value {
+                    invalid.push(self.point_to_index(cell.x, cell.y));
+                }
             }
         }
         return invalid;
+    }
+
+    pub fn solve_puzzle(&self) -> &Graph {
+        return self;
     }
 
     pub fn make_puzzle(remaining_clues: u8) -> Graph {
@@ -258,6 +263,11 @@ impl Graph {
                 i -= 1;
             }
         }
+        graph
+            .cells
+            .iter_mut()
+            .filter(|c| c.value != 0)
+            .for_each(|c| c.mutable = false);
         return graph;
     }
 }

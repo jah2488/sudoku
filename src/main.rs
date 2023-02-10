@@ -17,12 +17,31 @@ use sys::{
 
 fn main() {
     println!("Welcome to Sudoku!");
+    /*
+       TODO: -- Add UI to generate a new puzzle with a given difficulty
+       TODO: -- Add UI to solve the current puzzle
+       TODO: -- Add UI to undo/redo
+       TODO: -- Add UI to clear/reset the current puzzle
+       TODO: -- Add UI for focus modes
+       TODO: -- Add UI for picking a tool
+       TODO: -- -- Add keyboard shortcuts for tools
+       TODO: -- Add ability to save/load puzzles
+       TODO: -- Add ability to create a new puzzle
+       TODO: -- Add ability to draw lines between cells
+       TODO: -- Add ability to pain cells with a color
+       TODO: -- Add color palettes and colour schemes
+       TODO: -- Add ability to stamp shapes into cells
+       TODO: -- Add note field to cells
+       TODO: -- Add UI for corner marks
+       TODO: -- Add UI for center marks
+    */
 
-    let g = Graph::make_puzzle(20);
+    let g = Graph::make_puzzle(40);
 
     println!("{:?}", g);
 
     App::new()
+        .init_resource::<GameState>()
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {

@@ -3,9 +3,10 @@ use std::{
     fmt::{self, Debug},
 };
 
+use bevy::reflect::{FromReflect, Reflect};
 use Value::*;
 
-#[derive(Clone, Eq, PartialEq, Hash, Copy, Debug, PartialOrd, Ord)]
+#[derive(Reflect, Clone, Eq, PartialEq, Hash, Copy, Debug, PartialOrd, Ord, Default)]
 pub enum Value {
     One,
     Two,
@@ -16,12 +17,22 @@ pub enum Value {
     Seven,
     Eight,
     Nine,
+    #[default]
     Unknown,
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", from_val(*self))
+    }
+}
+
+impl FromReflect for Value {
+    fn from_reflect(v: &dyn Reflect) -> Option<Value> {
+        match v.downcast_ref::<Value>() {
+            Some(v) => Some(*v),
+            None => None,
+        }
     }
 }
 

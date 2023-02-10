@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{core::value::to_val, rsc::game_state::GameState};
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone, Debug, Default)]
 pub struct GridCell {
     pub index: u8,
     pub x: u8,
@@ -23,14 +23,17 @@ pub fn grid_update_system(
     mut b_query: Query<(&mut Button, &mut BackgroundColor, &Children)>,
     mut t_query: Query<&mut Text, With<GridLabel>>,
 ) {
+    let invalid_cells = game_state.graph.invalid_cells();
+
     for (mut cell, children) in &mut query.iter_mut() {
         game_state.graph.index(cell.index).map(|gc| {
             cell.value = gc.value;
-            cell.mutable = gc.value == 0;
+            if gc.value == 0 {
+                cell.mutable = true;
+            }
         });
 
-        let mut invalid_cells = game_state.graph.invalid_cells();
-        invalid_cells.retain(|c| c.x == cell.x && c.y == cell.y);
+        let invalid = invalid_cells.contains(&cell.index);
 
         for &child in children.iter() {
             let button = b_query.get_mut(child);
@@ -38,8 +41,8 @@ pub fn grid_update_system(
                 Ok((_, mut color, btn_children)) => {
                     *color = Color::rgb(0.15, 0.15, 0.15).into();
 
-                    if invalid_cells.len() > 0 {
-                        *color = Color::rgb(0.85, 0.15, 0.15).into();
+                    if invalid {
+                        *color = Color::rgba(0.85, 0.15, 0.15, 0.80).into();
                     }
 
                     if game_state.cursor_pos == cell.index {
@@ -62,6 +65,9 @@ pub fn grid_update_system(
                         let text = t_query.get_mut(btn_child);
                         match text {
                             Ok(mut txt) => {
+                                if !cell.mutable {
+                                    txt.sections[0].style.color = Color::rgb(1.85, 0.05, 0.35);
+                                }
                                 if cell.value == 0 {
                                     txt.sections[0].value = "".to_string();
                                 } else {
