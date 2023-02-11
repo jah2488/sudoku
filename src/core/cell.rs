@@ -3,8 +3,6 @@ use std::{
     fmt::{Debug, Formatter},
 };
 
-use crate::core::graph::Graph;
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct Cell {
     pub x: u8,
@@ -12,28 +10,6 @@ pub struct Cell {
     pub value: u8,
     pub mutable: bool,
     pub neighbors: HashSet<Point>,
-}
-
-impl Cell {
-    pub fn is_valid(&self, graph: &Graph) -> bool {
-        let mut valid = true;
-        for point in &self.neighbors {
-            let cell = graph.at(point.x, point.y);
-            match cell {
-                Some(c) => {
-                    if c.value == self.value {
-                        valid = false;
-                        break;
-                    }
-                }
-
-                None => {
-                    eprintln!("No cell found for {:?}", point);
-                }
-            }
-        }
-        return valid;
-    }
 }
 
 impl Debug for Cell {
