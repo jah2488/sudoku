@@ -247,21 +247,22 @@ impl Graph {
     }
 
     pub fn solve(&mut self) -> &Graph {
-        let max_depth = 100_000;
+        let max_depth = 1_000_000;
         let mut depth = 0;
         let mut rng = rand::thread_rng();
-        let mut graph: Graph;
         let mut invalid_moves: HashMap<(u8, u8), Vec<Value>> = HashMap::new();
         let mut guessed_cells: Vec<u8> = Vec::new();
 
         let mut empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
+        let mut old_graph = self.clone();
+        old_graph.cells = self.cells.clone();
+
         while empty_cells > 0 {
-            graph = self.clone();
             println!("Empty cells: {}", empty_cells);
-            println!("{:?}", graph);
+            println!("{:?}", self);
             let vals: HashSet<Value> = HashSet::new();
 
-            let mut cells: Vec<Cell> = graph
+            let mut cells: Vec<Cell> = self
                 .cells
                 .iter()
                 .filter(|c| c.value == 0)
@@ -270,34 +271,38 @@ impl Graph {
             cells.shuffle(&mut rng);
 
             let cell_pointer = cells.get_mut(0).unwrap();
-            let c_index = self.point_to_index(cell_pointer.y, cell_pointer.x);
+            let c_index = self.point_to_index(cell_pointer.x, cell_pointer.y);
+            guessed_cells.push(c_index - 1);
             println!(
-                "Cell: {} ({},{}) | Cell index: {}",
-                cell_pointer.value, cell_pointer.x, cell_pointer.y, c_index
+                "Cell: {} (x:{},y:{}) | Cell index: {}",
+                cell_pointer.value,
+                cell_pointer.x,
+                cell_pointer.y,
+                c_index - 1
             );
-            let mut cell = self.cells.get_mut((c_index - 1) as usize).unwrap();
-            guessed_cells.push(c_index);
-
-            let set = graph.possible_values(&cell, vals);
+            let cell = self.index(c_index).unwrap().clone();
+            println!("Cell: {:?}", cell);
+            let set = self.possible_values(&cell, vals);
             println!("Possible values: {:?}", set);
             let mut decision: Vec<Value> = Vec::new();
-            // for n in set {
-            //     match invalid_moves.get(&(cell.x, cell.y)) {
-            //         Some(moves) => {
-            //             if !moves.contains(&n) {
-            //                 decision.push(n);
-            //             }
-            //         }
-            //         None => {
-            //             decision.push(n);
-            //             invalid_moves.insert((cell.x, cell.y), vec![]);
-            //         }
-            //     }
-            // }
-            decision = set.into_iter().collect();
+            for n in set {
+                match invalid_moves.get(&(cell.x, cell.y)) {
+                    Some(moves) => {
+                        if !moves.contains(&n) {
+                            decision.push(n.to_owned());
+                        }
+                    }
+                    None => {
+                        decision.push(n.to_owned());
+                        invalid_moves.insert((cell.x, cell.y), vec![]);
+                    }
+                }
+            }
             decision.shuffle(&mut rng);
             println!("Decision: {:?}, {:?}", decision, decision.len());
             let choice = decision.get(0).cloned();
+
+            let mut cell = self.cells.get_mut((c_index - 1) as usize).unwrap();
             match choice {
                 Some(num) => {
                     cell.value = from_val(num);
@@ -333,16 +338,7 @@ impl Graph {
                         }
                     }
                     //Erase all previous guesses, since we're storing what doesn't work this shouldn't be too slow
-                    for idx in guessed_cells.iter() {
-                        match graph.cells.get_mut(*idx as usize) {
-                            Some(cell) => {
-                                cell.value = 0;
-                            }
-                            None => {
-                                eprintln!("Cell not found: {}", idx)
-                            }
-                        }
-                    }
+                    self.cells = old_graph.cells.clone();
                     guessed_cells.clear();
                     depth += 1;
 
