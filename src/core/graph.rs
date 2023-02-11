@@ -224,7 +224,7 @@ impl Graph {
     }
 
     pub fn point_to_index(&self, x: u8, y: u8) -> u8 {
-        return (y - 1) * 9 + x;
+        return x + (9 * (y - 1));
     }
 
     pub fn invalid_cells(&self) -> Vec<u8> {
@@ -246,19 +246,21 @@ impl Graph {
         return invalid;
     }
 
-    pub fn solve(&self) -> &Graph {
-        // let max_depth = 1_000_000;
-        // let mut depth = 0;
+    pub fn solve(&mut self) -> &Graph {
+        let max_depth = 100_000;
+        let mut depth = 0;
         let mut rng = rand::thread_rng();
         let mut graph: Graph;
         let mut invalid_moves: HashMap<(u8, u8), Vec<Value>> = HashMap::new();
-        let mut current: Cell;
-        let mut previous: Cell;
+        let mut guessed_cells: Vec<u8> = Vec::new();
 
-        let empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
+        let mut empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
         while empty_cells > 0 {
             graph = self.clone();
+            println!("Empty cells: {}", empty_cells);
+            println!("{:?}", graph);
             let vals: HashSet<Value> = HashSet::new();
+
             let mut cells: Vec<Cell> = graph
                 .cells
                 .iter()
@@ -267,32 +269,90 @@ impl Graph {
                 .collect();
             cells.shuffle(&mut rng);
 
-            let mut cell = cells.get(0).unwrap().to_owned();
+            let cell_pointer = cells.get_mut(0).unwrap();
+            let c_index = self.point_to_index(cell_pointer.y, cell_pointer.x);
+            println!(
+                "Cell: {} ({},{}) | Cell index: {}",
+                cell_pointer.value, cell_pointer.x, cell_pointer.y, c_index
+            );
+            let mut cell = self.cells.get_mut((c_index - 1) as usize).unwrap();
+            guessed_cells.push(c_index);
+
             let set = graph.possible_values(&cell, vals);
-            let mut v: Vec<Value> = Vec::new();
-            for n in set {
-                match invalid_moves.get(&(cell.x, cell.y)) {
-                    Some(moves) => {
-                        if !moves.contains(&n) {
-                            v.push(n);
-                        }
-                    }
-                    None => {
-                        v.push(n);
-                        invalid_moves.insert((cell.x, cell.y), vec![]);
-                    }
-                }
-            }
-            v.shuffle(&mut rng);
-            let choice = v.get(0).cloned();
+            println!("Possible values: {:?}", set);
+            let mut decision: Vec<Value> = Vec::new();
+            // for n in set {
+            //     match invalid_moves.get(&(cell.x, cell.y)) {
+            //         Some(moves) => {
+            //             if !moves.contains(&n) {
+            //                 decision.push(n);
+            //             }
+            //         }
+            //         None => {
+            //             decision.push(n);
+            //             invalid_moves.insert((cell.x, cell.y), vec![]);
+            //         }
+            //     }
+            // }
+            decision = set.into_iter().collect();
+            decision.shuffle(&mut rng);
+            println!("Decision: {:?}, {:?}", decision, decision.len());
+            let choice = decision.get(0).cloned();
             match choice {
                 Some(num) => {
-                    if cell.mutable {
-                        cell.value = from_val(num);
+                    cell.value = from_val(num);
+                }
+                None => {
+                    println!("No valid moves, backtracking");
+                    println!("Guessed cells: {:?}", guessed_cells);
+                    let last_cell = self
+                        .cells
+                        .get(guessed_cells.last().unwrap().to_owned() as usize);
+
+                    match last_cell {
+                        Some(c) => match invalid_moves.get(&(c.x, c.y)) {
+                            Some(moves) => {
+                                let mut moves = moves.clone();
+                                match to_val(c.value) {
+                                    Value::Unknown => {}
+                                    n => {
+                                        moves.push(n);
+                                    }
+                                }
+                                invalid_moves.insert((c.x, c.y), moves);
+                            }
+                            None => match to_val(c.value) {
+                                Value::Unknown => {}
+                                n => {
+                                    invalid_moves.insert((c.x, c.y), vec![n]);
+                                }
+                            },
+                        },
+                        None => {
+                            eprintln!("Cell not found: {:?}", last_cell);
+                        }
+                    }
+                    //Erase all previous guesses, since we're storing what doesn't work this shouldn't be too slow
+                    for idx in guessed_cells.iter() {
+                        match graph.cells.get_mut(*idx as usize) {
+                            Some(cell) => {
+                                cell.value = 0;
+                            }
+                            None => {
+                                eprintln!("Cell not found: {}", idx)
+                            }
+                        }
+                    }
+                    guessed_cells.clear();
+                    depth += 1;
+
+                    if depth >= max_depth {
+                        println!("Max depth reached.");
+                        break;
                     }
                 }
-                None => {}
             }
+            empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
         }
 
         return self;

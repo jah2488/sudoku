@@ -36,7 +36,7 @@ fn main() {
        TODO: -- Add UI for center marks
     */
 
-    let g = Graph::make_puzzle(40);
+    let g = Graph::make_puzzle(30);
 
     println!("{:?}", g);
 

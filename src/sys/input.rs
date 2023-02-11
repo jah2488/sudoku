@@ -27,6 +27,10 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
         game_state.action = Action::Generate;
     }
 
+    if keyboard.just_pressed(KeyCode::Return) {
+        game_state.action = Action::Solve;
+    }
+
     if keyboard.just_released(KeyCode::Space) {
         game_state.tool = match game_state.tool {
             Tools::Select => Tools::CornerMark,
