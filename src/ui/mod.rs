@@ -1,9 +1,21 @@
 use bevy::prelude::*;
 
-use crate::sys::{
-    grid_update_system::{GridCell, GridLabel},
-    text::{ColorText, FpsText},
+use crate::{
+    rsc::game_state::Tools,
+    sys::{
+        grid_update_system::{GridCell, GridLabel},
+        text::{ColorText, FpsText},
+    },
 };
+#[derive(Component)]
+pub struct ToolButton;
+
+#[derive(Component)]
+pub struct ToolLabel {
+    pub tool: Tools,
+}
+#[derive(Component)]
+pub struct GridButton;
 
 pub fn debug_panel(asset_server: &Res<AssetServer>) -> (TextBundle, ColorText, Name) {
     (
@@ -52,37 +64,92 @@ pub fn fps(asset_server: &Res<AssetServer>) -> (TextBundle, FpsText, Name) {
     )
 }
 
-pub fn board(mut commands: Commands, asset_server: &Res<AssetServer>) {
-    commands
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    size: Size::new(bevy::ui::Val::Percent(100.0), bevy::ui::Val::Percent(100.0)),
-                    justify_content: JustifyContent::SpaceBetween,
+pub fn tool_panel(mut cmd: Commands, asset_server: Res<AssetServer>) {
+    cmd.spawn((
+        NodeBundle {
+            style: Style {
+                size: Size::new(bevy::ui::Val::Px(300.0), bevy::ui::Val::Percent(100.0)),
+                position_type: PositionType::Absolute,
+                position: UiRect {
+                    right: bevy::ui::Val::Px(0.0),
+                    top: bevy::ui::Val::Px(0.0),
                     ..default()
                 },
                 ..default()
             },
-            Name::new("Grid"),
-        ))
-        .with_children(|parent| {
-            let mut i = 1;
-            let l = 200; // Left Margin
-            let t = 1; // Top Margin
-            let w = 100; // Width
-            let h = 100; // Height
-            let y = 9; // Row Length
-            while i <= 81 {
-                spawn_cell(
-                    parent,
-                    i,
-                    l + (w * (1 + ((i - 1) % y))),
-                    t + (h * (0 + ceil(i, y))),
-                    &asset_server,
-                );
-                i += 1;
-            }
-        });
+            background_color: BackgroundColor(Color::rgba(0.4, 0.3, 0.1, 0.5)),
+            ..default()
+        },
+        Name::new("Tool Panel"),
+    ))
+    .with_children(|parent| {
+        parent
+            .spawn((
+                ButtonBundle {
+                    style: Style {
+                        size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
+                        position_type: PositionType::Absolute,
+                        position: UiRect {
+                            left: bevy::ui::Val::Px(0.0),
+                            top: bevy::ui::Val::Px(0.0),
+                            ..default()
+                        },
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::rgba(0.4, 0.3, 0.4, 1.0)),
+                    ..default()
+                },
+                ToolButton,
+                Name::new("Tool::Fill"),
+            ))
+            .with_children(|button| {
+                button.spawn((
+                    TextBundle::from_section(
+                        "Fill",
+                        TextStyle {
+                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 40.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                        },
+                    ),
+                    ToolLabel { tool: Tools::Fill },
+                ));
+            });
+    });
+}
+
+pub fn board(mut cmd: Commands, asset_server: Res<AssetServer>) {
+    cmd.spawn((
+        NodeBundle {
+            style: Style {
+                size: Size::new(bevy::ui::Val::Percent(100.0), bevy::ui::Val::Percent(100.0)),
+                justify_content: JustifyContent::SpaceBetween,
+                ..default()
+            },
+            ..default()
+        },
+        Name::new("Grid"),
+    ))
+    .with_children(|parent| {
+        let mut i = 1;
+        let l = 200; // Left Margin
+        let t = 1; // Top Margin
+        let w = 100; // Width
+        let h = 100; // Height
+        let y = 9; // Row Length
+        while i <= 81 {
+            spawn_cell(
+                parent,
+                i,
+                l + (w * (1 + ((i - 1) % y))),
+                t + (h * (0 + ceil(i, y))),
+                &asset_server,
+            );
+            i += 1;
+        }
+    });
 }
 
 fn ceil(x: i32, y: i32) -> i32 {
@@ -160,6 +227,7 @@ fn spawn_cell(
                     background_color: Color::rgb(0.8, 0.8, 1.0).into(),
                     ..default()
                 },
+                GridButton,
                 Name::new(i.to_string()),
             ))
             .with_children(|parent| {

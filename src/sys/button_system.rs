@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{
     core::value::{to_val, Value},
     rsc::game_state::{GameState, Modifier, MouseState},
+    ui::GridButton,
 };
 
 use super::grid_update_system::GridCell;
@@ -11,7 +12,7 @@ pub fn button_system(
     mut game_state: ResMut<GameState>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Parent),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<Button>, With<GridButton>),
     >,
     mut cell_query: Query<&mut GridCell>,
 ) {
@@ -67,10 +68,12 @@ pub fn button_system(
                     *color = Color::rgb(0.25, 0.25, 0.25).into();
                 }
             },
-            Interaction::None => {
-                let mut cell = cell_query.get_mut(parent.get()).unwrap();
-                cell.hovered = false;
-            }
+            Interaction::None => match cell_query.get_mut(parent.get()) {
+                Ok(mut cell) => {
+                    cell.hovered = false;
+                }
+                Err(_) => {}
+            },
         }
     }
 }

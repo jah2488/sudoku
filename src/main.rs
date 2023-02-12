@@ -4,13 +4,12 @@ mod sys;
 mod ui;
 use crate::core::graph::Graph;
 use crate::rsc::game_state::GameState;
-use crate::sys::button_system::button_system;
-use crate::sys::grid_fill_system::grid_fill_system;
 
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode, winit::WinitSettings,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use ui::ToolButton;
 
 fn main() {
     println!("Welcome to Sudoku!");
@@ -33,7 +32,7 @@ fn main() {
        TODO: -- Add UI for center marks
     */
 
-    let g = Graph::make_puzzle(30);
+    let g = Graph::make_puzzle(10);
 
     println!("{:?}", g);
 
@@ -53,14 +52,17 @@ fn main() {
         .add_plugin(WorldInspectorPlugin)
         .insert_resource(GameState::new(g))
         .add_startup_system(setup)
-        .add_startup_system(grid_fill_system)
+        .add_startup_system(ui::board.before(sys::grid_fill_system::grid_fill_system))
+        .add_startup_system(ui::tool_panel)
+        .add_startup_system(sys::grid_fill_system::grid_fill_system)
         .add_system(sys::input::mouse_system)
-        .add_system(button_system)
-        .add_system(sys::grid_update_system::grid_update_system.after(button_system))
+        .add_system(sys::button_system::button_system)
+        .add_system(sys::grid_update_system::grid_update_system)
         .add_system(sys::text::text_update_system)
         .add_system(sys::text::text_color_system)
         .add_system(sys::input::keyboard_system)
         .add_system(sys::actions::action_system)
+        .add_system(tool_panel_system)
         .run();
 }
 
@@ -68,5 +70,27 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
     commands.spawn(ui::debug_panel(&asset_server));
     commands.spawn(ui::fps(&asset_server));
-    ui::board(commands, &asset_server)
+}
+
+fn tool_panel_system(
+    mut game_state: ResMut<GameState>,
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<Button>, With<ToolButton>),
+    >,
+    mut btn_query: Query<(&mut Button, &Children, With<ToolButton>)>,
+) {
+    for (interaction, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = BackgroundColor(Color::rgb(0.5, 0.9, 0.5));
+            }
+            Interaction::Hovered => {
+                *color = BackgroundColor(Color::rgb(0.5, 0.5, 0.5));
+            }
+            Interaction::None => {
+                *color = BackgroundColor(Color::rgb(0.3, 0.3, 0.3));
+            }
+        }
+    }
 }

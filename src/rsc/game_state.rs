@@ -97,10 +97,9 @@ impl GameState {
 
     pub fn solve(&mut self) {
         println!("Solving Graph from: \n{:?}", self.graph);
-        let new_graph = self.graph.solve().to_owned();
-        println!("Solved graph:\n{:?}", new_graph);
         self.snapshot();
-        self.graph = new_graph;
+        self.graph.generate();
+        println!("Solved graph:\n{:?}", self.graph);
     }
 
     pub fn snapshot(&mut self) {

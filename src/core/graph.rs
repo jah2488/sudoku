@@ -51,7 +51,6 @@ impl Graph {
         let x = cell.x;
         let y = cell.y;
 
-        // Row
         (1..=9).for_each(|i| {
             if i != y {
                 neighbors.insert(Point { x, y: i });
@@ -131,6 +130,15 @@ impl Graph {
         let mut invalid_moves: HashMap<usize, Vec<Value>> = HashMap::new();
 
         while i < 81 {
+            match self.cells.get_mut(i) {
+                Some(cell) => {
+                    if !cell.mutable {
+                        i += 1;
+                        continue;
+                    }
+                }
+                None => {}
+            }
             graph = self.clone();
             let vals: HashSet<Value> = HashSet::new();
 
@@ -177,10 +185,15 @@ impl Graph {
                     }
                 }
                 None => {
-                    let last_cell = self.cells.get(i - 1).unwrap();
+                    let mut last_cell_index = i - 1;
+                    let mut last_cell = self.cells.get(last_cell_index).unwrap();
+                    while last_cell_index > 0 && !last_cell.mutable {
+                        last_cell_index -= 1;
+                        last_cell = self.cells.get(last_cell_index).unwrap();
+                    }
                     // If we have no valid moves, we need to backtrack, and
                     // add the current cell's value to the list of invalid moves for the previous cell
-                    match invalid_moves.get(&(i - 1)) {
+                    match invalid_moves.get(&(&last_cell_index)) {
                         Some(moves) => {
                             let mut moves = moves.clone();
                             if i > 1 {
@@ -190,18 +203,19 @@ impl Graph {
                                         moves.push(n);
                                     }
                                 }
-                                invalid_moves.insert(i - 1, moves);
+                                invalid_moves.insert(last_cell_index, moves);
                             }
                         }
                         None => match to_val(last_cell.value) {
                             Value::Unknown => {}
                             n => {
-                                invalid_moves.insert(i - 1, vec![n]);
+                                invalid_moves.insert(last_cell_index, vec![n]);
                             }
                         },
                     }
 
-                    i -= 1;
+                    i -= i - last_cell_index;
+                    i = i.clamp(0, 81);
 
                     depth += 1;
 
@@ -244,114 +258,6 @@ impl Graph {
             }
         }
         return invalid;
-    }
-
-    pub fn solve(&mut self) -> &Graph {
-        let max_depth = 1_000_000;
-        let mut depth = 0;
-        let mut rng = rand::thread_rng();
-        let mut invalid_moves: HashMap<(u8, u8), Vec<Value>> = HashMap::new();
-        let mut guessed_cells: Vec<u8> = Vec::new();
-
-        let mut empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
-        let mut old_graph = self.clone();
-        old_graph.cells = self.cells.clone();
-
-        while empty_cells > 0 {
-            println!("Empty cells: {}", empty_cells);
-            println!("{:?}", self);
-            let vals: HashSet<Value> = HashSet::new();
-
-            let mut cells: Vec<Cell> = self
-                .cells
-                .iter()
-                .filter(|c| c.value == 0)
-                .cloned()
-                .collect();
-            cells.shuffle(&mut rng);
-
-            let cell_pointer = cells.get_mut(0).unwrap();
-            let c_index = self.point_to_index(cell_pointer.x, cell_pointer.y);
-            guessed_cells.push(c_index - 1);
-            println!(
-                "Cell: {} (x:{},y:{}) | Cell index: {}",
-                cell_pointer.value,
-                cell_pointer.x,
-                cell_pointer.y,
-                c_index - 1
-            );
-            let cell = self.index(c_index).unwrap().clone();
-            println!("Cell: {:?}", cell);
-            let set = self.possible_values(&cell, vals);
-            println!("Possible values: {:?}", set);
-            let mut decision: Vec<Value> = Vec::new();
-            for n in set {
-                match invalid_moves.get(&(cell.x, cell.y)) {
-                    Some(moves) => {
-                        if !moves.contains(&n) {
-                            decision.push(n.to_owned());
-                        }
-                    }
-                    None => {
-                        decision.push(n.to_owned());
-                        invalid_moves.insert((cell.x, cell.y), vec![]);
-                    }
-                }
-            }
-            decision.shuffle(&mut rng);
-            println!("Decision: {:?}, {:?}", decision, decision.len());
-            let choice = decision.get(0).cloned();
-
-            let mut cell = self.cells.get_mut((c_index - 1) as usize).unwrap();
-            match choice {
-                Some(num) => {
-                    cell.value = from_val(num);
-                }
-                None => {
-                    println!("No valid moves, backtracking");
-                    println!("Guessed cells: {:?}", guessed_cells);
-                    let last_cell = self
-                        .cells
-                        .get(guessed_cells.last().unwrap().to_owned() as usize);
-
-                    match last_cell {
-                        Some(c) => match invalid_moves.get(&(c.x, c.y)) {
-                            Some(moves) => {
-                                let mut moves = moves.clone();
-                                match to_val(c.value) {
-                                    Value::Unknown => {}
-                                    n => {
-                                        moves.push(n);
-                                    }
-                                }
-                                invalid_moves.insert((c.x, c.y), moves);
-                            }
-                            None => match to_val(c.value) {
-                                Value::Unknown => {}
-                                n => {
-                                    invalid_moves.insert((c.x, c.y), vec![n]);
-                                }
-                            },
-                        },
-                        None => {
-                            eprintln!("Cell not found: {:?}", last_cell);
-                        }
-                    }
-                    //Erase all previous guesses, since we're storing what doesn't work this shouldn't be too slow
-                    self.cells = old_graph.cells.clone();
-                    guessed_cells.clear();
-                    depth += 1;
-
-                    if depth >= max_depth {
-                        println!("Max depth reached.");
-                        break;
-                    }
-                }
-            }
-            empty_cells = self.cells.iter().filter(|c| c.value == 0).count();
-        }
-
-        return self;
     }
 
     pub fn make_puzzle(remaining_clues: u8) -> Graph {
