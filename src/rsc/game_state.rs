@@ -5,6 +5,8 @@ use crate::{
     sys::grid_update_system::GridCell,
 };
 
+use super::colors::Theme;
+
 #[derive(Reflect, Clone, Debug, Default)]
 pub enum Modifier {
     Shift,
@@ -22,7 +24,7 @@ pub enum MouseState {
     None,
 }
 
-#[derive(Reflect, Clone, Debug, Default)]
+#[derive(Reflect, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum Tools {
     Select,
     CornerMark,
@@ -63,6 +65,7 @@ pub struct GameState {
     pub modifier: Modifier,
     pub mouse: MouseState,
     pub selected_cells: HashSet<u8>,
+    pub theme: Theme,
     pub tool: Tools,
 }
 
@@ -82,6 +85,7 @@ impl GameState {
             modifier: Modifier::None,
             mouse: MouseState::None,
             selected_cells: HashSet::new(),
+            theme: Theme::default_theme(),
             tool: Tools::None,
         }
     }

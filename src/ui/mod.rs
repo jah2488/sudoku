@@ -1,16 +1,16 @@
 use bevy::prelude::*;
 
 use crate::{
-    rsc::game_state::Tools,
+    rsc::game_state::{GameState, Tools},
     sys::{
         grid_update_system::{GridCell, GridLabel},
         text::{ColorText, FpsText},
     },
 };
 #[derive(Component)]
-pub struct ToolButton;
+pub struct ToolButton(pub Tools);
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone, Debug)]
 pub struct ToolLabel {
     pub tool: Tools,
 }
@@ -64,7 +64,7 @@ pub fn fps(asset_server: &Res<AssetServer>) -> (TextBundle, FpsText, Name) {
     )
 }
 
-pub fn tool_panel(mut cmd: Commands, asset_server: Res<AssetServer>) {
+pub fn tool_panel(mut cmd: Commands, game_state: Res<GameState>, asset_server: Res<AssetServer>) {
     cmd.spawn((
         NodeBundle {
             style: Style {
@@ -77,50 +77,58 @@ pub fn tool_panel(mut cmd: Commands, asset_server: Res<AssetServer>) {
                 },
                 ..default()
             },
-            background_color: BackgroundColor(Color::rgba(0.4, 0.3, 0.1, 0.5)),
+            background_color: BackgroundColor(game_state.theme.tool.panel_bg),
             ..default()
         },
         Name::new("Tool Panel"),
     ))
     .with_children(|parent| {
-        parent
-            .spawn((
-                ButtonBundle {
-                    style: Style {
-                        size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
-                        position_type: PositionType::Absolute,
-                        position: UiRect {
-                            left: bevy::ui::Val::Px(0.0),
-                            top: bevy::ui::Val::Px(0.0),
+        let tools = [
+            (Tools::Fill, "Fill"),
+            (Tools::CornerMark, "Corner"),
+            (Tools::CenterMark, "Center"),
+            (Tools::Erase, "Erase"),
+        ];
+        for (tool, name) in tools {
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
+                            position_type: PositionType::Absolute,
+                            position: UiRect {
+                                left: bevy::ui::Val::Px(0.0),
+                                top: bevy::ui::Val::Px(110.0 * (tool as i32) as f32),
+                                ..default()
+                            },
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
                             ..default()
                         },
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
+                        background_color: BackgroundColor(game_state.theme.tool.bg),
                         ..default()
                     },
-                    background_color: BackgroundColor(Color::rgba(0.4, 0.3, 0.4, 1.0)),
-                    ..default()
-                },
-                ToolButton,
-                Name::new("Tool::Fill"),
-            ))
-            .with_children(|button| {
-                button.spawn((
-                    TextBundle::from_section(
-                        "Fill",
-                        TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 40.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                        },
-                    ),
-                    ToolLabel { tool: Tools::Fill },
-                ));
-            });
+                    ToolButton(tool),
+                    Name::new("Tool: ".to_string() + name),
+                ))
+                .with_children(|button| {
+                    button.spawn((
+                        TextBundle::from_section(
+                            name,
+                            TextStyle {
+                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 40.0,
+                                color: game_state.theme.tool.text,
+                            },
+                        ),
+                        ToolLabel { tool: tool },
+                    ));
+                });
+        }
     });
 }
 
-pub fn board(mut cmd: Commands, asset_server: Res<AssetServer>) {
+pub fn board(mut cmd: Commands, game_state: Res<GameState>, asset_server: Res<AssetServer>) {
     cmd.spawn((
         NodeBundle {
             style: Style {
@@ -145,6 +153,7 @@ pub fn board(mut cmd: Commands, asset_server: Res<AssetServer>) {
                 i,
                 l + (w * (1 + ((i - 1) % y))),
                 t + (h * (0 + ceil(i, y))),
+                &game_state,
                 &asset_server,
             );
             i += 1;
@@ -161,6 +170,7 @@ fn spawn_cell(
     i: i32,
     x: i32,
     y: i32,
+    game_state: &Res<GameState>,
     asset_server: &Res<AssetServer>,
 ) -> Entity {
     let show_right = (i % 3) == 0;
@@ -195,7 +205,7 @@ fn spawn_cell(
                 border: rect,
                 ..default()
             },
-            background_color: Color::rgb(0.4, 0.4, 1.0).into(),
+            background_color: game_state.theme.grid.border.into(),
             ..default()
         },
         GridCell {
@@ -224,7 +234,7 @@ fn spawn_cell(
                         justify_content: JustifyContent::SpaceAround,
                         ..default()
                     },
-                    background_color: Color::rgb(0.8, 0.8, 1.0).into(),
+                    background_color: game_state.theme.grid.bg.into(),
                     ..default()
                 },
                 GridButton,
@@ -237,7 +247,7 @@ fn spawn_cell(
                         TextStyle {
                             font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                             font_size: 40.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
+                            color: game_state.theme.grid.text,
                         },
                     ),
                     GridLabel,

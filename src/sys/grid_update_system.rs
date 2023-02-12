@@ -39,26 +39,26 @@ pub fn grid_update_system(
             let button = b_query.get_mut(child);
             match button {
                 Ok((_, mut color, btn_children)) => {
-                    *color = Color::rgb(0.15, 0.15, 0.15).into();
+                    *color = game_state.theme.grid.bg.into();
 
                     if invalid {
-                        *color = Color::rgba(0.85, 0.15, 0.15, 0.80).into();
+                        *color = game_state.theme.grid.invalid.into();
                     }
 
                     if game_state.cursor_pos == cell.index {
-                        *color = Color::rgb(0.35, 0.15, 0.75).into();
+                        *color = game_state.theme.grid.cursor.into();
                     }
 
                     if cell.hovered {
-                        *color = Color::rgb(0.25, 0.25, 0.25).into();
+                        *color = game_state.theme.grid.hover.into();
                     }
 
                     if game_state.selected_cells.contains(&cell.index) {
-                        *color = Color::rgb(0.35, 0.75, 0.35).into();
+                        *color = game_state.theme.grid.selected.into();
                     }
 
                     if game_state.focus_value == to_val(cell.value) && cell.value != 0 {
-                        *color = Color::rgb(0.85, 0.15, 0.15).into();
+                        *color = game_state.theme.grid.focused.into();
                     }
 
                     for &btn_child in btn_children.iter() {
@@ -66,7 +66,7 @@ pub fn grid_update_system(
                         match text {
                             Ok(mut txt) => {
                                 if !cell.mutable {
-                                    txt.sections[0].style.color = Color::rgb(1.85, 0.05, 0.35);
+                                    txt.sections[0].style.color = game_state.theme.grid.text.into();
                                 }
                                 if cell.value == 0 {
                                     txt.sections[0].value = "".to_string();

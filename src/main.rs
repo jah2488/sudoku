@@ -4,12 +4,15 @@ mod sys;
 mod ui;
 use crate::core::graph::Graph;
 use crate::rsc::game_state::GameState;
+use crate::rsc::game_state::Tools;
 
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, window::PresentMode, winit::WinitSettings,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use ui::ToolButton;
+use ui::{ToolButton, ToolLabel};
+
+struct ToolSelectedEvent(Tools);
 
 fn main() {
     println!("Welcome to Sudoku!");
@@ -32,7 +35,7 @@ fn main() {
        TODO: -- Add UI for center marks
     */
 
-    let g = Graph::make_puzzle(10);
+    let g = Graph::make_puzzle(25);
 
     println!("{:?}", g);
 
@@ -50,6 +53,7 @@ fn main() {
         }))
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(WorldInspectorPlugin)
+        .add_event::<ToolSelectedEvent>()
         .insert_resource(GameState::new(g))
         .add_startup_system(setup)
         .add_startup_system(ui::board.before(sys::grid_fill_system::grid_fill_system))
@@ -63,6 +67,7 @@ fn main() {
         .add_system(sys::input::keyboard_system)
         .add_system(sys::actions::action_system)
         .add_system(tool_panel_system)
+        .add_system(tool_panel_update_system)
         .run();
 }
 
@@ -74,22 +79,55 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn tool_panel_system(
     mut game_state: ResMut<GameState>,
+    mut tool_selected_event: EventWriter<ToolSelectedEvent>,
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
+        (&Interaction, &mut BackgroundColor, &Children),
         (Changed<Interaction>, With<Button>, With<ToolButton>),
     >,
-    mut btn_query: Query<(&mut Button, &Children, With<ToolButton>)>,
+    mut btn_query: Query<&ToolLabel>,
 ) {
-    for (interaction, mut color) in &mut interaction_query {
+    for (interaction, mut color, children) in &mut interaction_query {
+        let label = btn_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
-                *color = BackgroundColor(Color::rgb(0.5, 0.9, 0.5));
+                match label {
+                    ToolLabel { tool } => {
+                        game_state.tool = *tool;
+                        tool_selected_event.send(ToolSelectedEvent(*tool));
+                    }
+                }
+                *color = BackgroundColor(game_state.theme.tool.selected);
             }
+
             Interaction::Hovered => {
-                *color = BackgroundColor(Color::rgb(0.5, 0.5, 0.5));
+                *color = BackgroundColor(game_state.theme.tool.hover);
             }
             Interaction::None => {
-                *color = BackgroundColor(Color::rgb(0.3, 0.3, 0.3));
+                if game_state.tool == label.tool {
+                    *color = BackgroundColor(game_state.theme.tool.selected);
+                } else {
+                    *color = BackgroundColor(game_state.theme.tool.bg);
+                }
+            }
+        }
+    }
+}
+
+fn tool_panel_update_system(
+    mut game_state: ResMut<GameState>,
+    mut tool_selected_event: EventReader<ToolSelectedEvent>,
+    mut tool_query: Query<(&ToolButton, &mut BackgroundColor)>,
+) {
+    for event in tool_selected_event.iter() {
+        for (tool, mut color) in &mut tool_query.iter_mut() {
+            match tool {
+                ToolButton(tool) => {
+                    if *tool == event.0 {
+                        *color = BackgroundColor(game_state.theme.tool.selected);
+                    } else {
+                        *color = BackgroundColor(game_state.theme.tool.bg);
+                    }
+                }
             }
         }
     }

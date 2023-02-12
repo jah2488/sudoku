@@ -11,12 +11,12 @@ use super::grid_update_system::GridCell;
 pub fn button_system(
     mut game_state: ResMut<GameState>,
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &Parent),
+        (&Interaction, &Parent),
         (Changed<Interaction>, With<Button>, With<GridButton>),
     >,
     mut cell_query: Query<&mut GridCell>,
 ) {
-    for (interaction, mut color, parent) in &mut interaction_query {
+    for (interaction, parent) in &mut interaction_query {
         match *interaction {
             Interaction::Clicked => {
                 let cell = cell_query.get_mut(parent.get()).unwrap();
@@ -60,12 +60,10 @@ pub fn button_system(
                 MouseState::Released => {
                     let mut cell = cell_query.get_mut(parent.get()).unwrap();
                     cell.hovered = true;
-                    *color = Color::rgb(0.85, 0.25, 0.25).into();
                 }
                 MouseState::None => {
                     let mut cell = cell_query.get_mut(parent.get()).unwrap();
                     cell.hovered = true;
-                    *color = Color::rgb(0.25, 0.25, 0.25).into();
                 }
             },
             Interaction::None => match cell_query.get_mut(parent.get()) {
