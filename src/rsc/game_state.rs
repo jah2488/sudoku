@@ -86,7 +86,7 @@ impl GameState {
             mouse: MouseState::None,
             selected_cells: HashSet::new(),
             theme: Theme::default_theme(),
-            tool: Tools::None,
+            tool: Tools::Fill,
         }
     }
 

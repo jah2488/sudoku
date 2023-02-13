@@ -132,10 +132,15 @@ pub fn board(mut cmd: Commands, game_state: Res<GameState>, asset_server: Res<As
     cmd.spawn((
         NodeBundle {
             style: Style {
-                size: Size::new(bevy::ui::Val::Percent(100.0), bevy::ui::Val::Percent(100.0)),
+                size: Size::new(
+                    bevy::ui::Val::Percent(100.0) * 0.4,
+                    bevy::ui::Val::Percent(100.0),
+                ),
                 justify_content: JustifyContent::SpaceBetween,
+                border: UiRect::all(Val::Px(5.0)),
                 ..default()
             },
+            background_color: BackgroundColor(game_state.theme.grid.cursor),
             ..default()
         },
         Name::new("Grid"),
@@ -214,6 +219,7 @@ fn spawn_cell(
             y: (i / 9) as u8,
             value: 0,
             selected: false,
+            focused: false,
             hovered: false,
             mutable: false,
             invalid: false,

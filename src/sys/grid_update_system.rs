@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{core::value::to_val, rsc::game_state::GameState};
+use crate::{
+    core::value::{from_val, to_val},
+    evt::FocusModeEvent,
+    rsc::game_state::GameState,
+};
 
 #[derive(Component, Copy, Clone, Debug, Default)]
 pub struct GridCell {
@@ -10,12 +14,35 @@ pub struct GridCell {
     pub value: u8,
     pub mutable: bool,
     pub selected: bool,
+    pub focused: bool,
     pub hovered: bool,
     pub invalid: bool,
 }
 
 #[derive(Component)]
 pub struct GridLabel;
+
+pub fn focus_mode_system(
+    mut game_state: ResMut<GameState>,
+    mut focus_mode_event: EventReader<FocusModeEvent>,
+    mut query: Query<&mut GridCell>,
+) {
+    for event in focus_mode_event.iter() {
+        match event {
+            FocusModeEvent(value) => {
+                for mut cell in query.iter_mut() {
+                    let gc = game_state.graph.index(cell.index).unwrap().to_owned();
+                    for p in &gc.neighbors {
+                        let neighbor = game_state.graph.at(p.x, p.y).unwrap();
+                        if neighbor.value == from_val(*value) {
+                            cell.focused = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 pub fn grid_update_system(
     mut game_state: ResMut<GameState>,
@@ -40,6 +67,10 @@ pub fn grid_update_system(
             match button {
                 Ok((_, mut color, btn_children)) => {
                     *color = game_state.theme.grid.bg.into();
+
+                    if cell.focused {
+                        *color = game_state.theme.grid.focused.into();
+                    }
 
                     if invalid {
                         *color = game_state.theme.grid.invalid.into();

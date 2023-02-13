@@ -95,6 +95,11 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
         }
     }
 
+    // TODO: Abstract keyboard shortcuts to a resource so they can be customized per user
+    if keyboard.just_pressed(KeyCode::F) {
+        game_state.tool = Tools::Fill; // FIXME: Updating state directly like this will cause the UI to get out of sync. Need to move all state updates to a single location, or behind event emission.
+    }
+
     let keycodes = [
         ([KeyCode::Key1, KeyCode::Numpad1], Value::One),
         ([KeyCode::Key2, KeyCode::Numpad2], Value::Two),

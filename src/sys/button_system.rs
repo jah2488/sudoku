@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     core::value::{to_val, Value},
+    evt::FocusModeEvent,
     rsc::game_state::{GameState, Modifier, MouseState},
     ui::GridButton,
 };
@@ -10,6 +11,7 @@ use super::grid_update_system::GridCell;
 
 pub fn button_system(
     mut game_state: ResMut<GameState>,
+    mut focus_mode_event: EventWriter<FocusModeEvent>,
     mut interaction_query: Query<
         (&Interaction, &Parent),
         (Changed<Interaction>, With<Button>, With<GridButton>),
@@ -27,6 +29,7 @@ pub fn button_system(
                         game_state.focus_value = Value::Unknown;
                     } else {
                         game_state.focus_value = to_val(cell.value);
+                        focus_mode_event.send(FocusModeEvent(game_state.focus_value));
                     }
                 } else {
                     game_state.focus_value = Value::Unknown;

@@ -1,4 +1,5 @@
 mod core;
+mod evt;
 mod rsc;
 mod sys;
 mod ui;
@@ -12,18 +13,20 @@ use bevy::{
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use ui::{ToolButton, ToolLabel};
 
-struct ToolSelectedEvent(Tools);
-
 fn main() {
     println!("Welcome to Sudoku!");
     /*
+       TODO: -- Add UI for corner marks
+       TODO: -- Add UI for center marks
        TODO: -- Add UI to generate a new puzzle with a given difficulty
        TODO: -- Add UI to solve the current puzzle
        TODO: -- Add UI to undo/redo
        TODO: -- Add UI to clear/reset the current puzzle
        TODO: -- Add UI for focus modes
-       TODO: -- Add UI for picking a tool
-       TODO: -- -- Add keyboard shortcuts for tools
+       TODO: -- Add keyboard shortcuts for tools
+       TODO: -- Extend focus mode to show everywhere a digit cannot go
+       TODO: -- Add ability to "pin" a focus mode
+       TODO: -- Add focus modes for rows, columns, houses, or digits
        TODO: -- Add ability to save/load puzzles
        TODO: -- Add ability to create a new puzzle
        TODO: -- Add ability to draw lines between cells
@@ -31,8 +34,6 @@ fn main() {
        TODO: -- Add color palettes and colour schemes
        TODO: -- Add ability to stamp shapes into cells
        TODO: -- Add note field to cells
-       TODO: -- Add UI for corner marks
-       TODO: -- Add UI for center marks
     */
 
     let g = Graph::make_puzzle(25);
@@ -40,6 +41,7 @@ fn main() {
     println!("{:?}", g);
 
     App::new()
+        .insert_resource(ClearColor(Color::rgb(1.0, 0.0, 1.0))) //Set obnoxious clear color to ensure UI covers everything
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
@@ -47,13 +49,16 @@ fn main() {
                 width: 1920.,
                 height: 1080.,
                 present_mode: PresentMode::AutoVsync,
+                decorations: true,
+                mode: bevy::window::WindowMode::Windowed,
                 ..default()
             },
             ..default()
         }))
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(WorldInspectorPlugin)
-        .add_event::<ToolSelectedEvent>()
+        // .add_plugin(WorldInspectorPlugin)
+        .add_event::<evt::ToolSelectedEvent>()
+        .add_event::<evt::FocusModeEvent>()
         .insert_resource(GameState::new(g))
         .add_startup_system(setup)
         .add_startup_system(ui::board.before(sys::grid_fill_system::grid_fill_system))
@@ -62,6 +67,7 @@ fn main() {
         .add_system(sys::input::mouse_system)
         .add_system(sys::button_system::button_system)
         .add_system(sys::grid_update_system::grid_update_system)
+        .add_system(sys::grid_update_system::focus_mode_system)
         .add_system(sys::text::text_update_system)
         .add_system(sys::text::text_color_system)
         .add_system(sys::input::keyboard_system)
@@ -73,13 +79,13 @@ fn main() {
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
-    commands.spawn(ui::debug_panel(&asset_server));
-    commands.spawn(ui::fps(&asset_server));
+    // commands.spawn(ui::debug_panel(&asset_server));
+    // commands.spawn(ui::fps(&asset_server));
 }
 
 fn tool_panel_system(
     mut game_state: ResMut<GameState>,
-    mut tool_selected_event: EventWriter<ToolSelectedEvent>,
+    mut tool_selected_event: EventWriter<evt::ToolSelectedEvent>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
         (Changed<Interaction>, With<Button>, With<ToolButton>),
@@ -93,7 +99,7 @@ fn tool_panel_system(
                 match label {
                     ToolLabel { tool } => {
                         game_state.tool = *tool;
-                        tool_selected_event.send(ToolSelectedEvent(*tool));
+                        tool_selected_event.send(evt::ToolSelectedEvent(*tool));
                     }
                 }
                 *color = BackgroundColor(game_state.theme.tool.selected);
@@ -114,8 +120,8 @@ fn tool_panel_system(
 }
 
 fn tool_panel_update_system(
-    mut game_state: ResMut<GameState>,
-    mut tool_selected_event: EventReader<ToolSelectedEvent>,
+    game_state: ResMut<GameState>,
+    mut tool_selected_event: EventReader<evt::ToolSelectedEvent>,
     mut tool_query: Query<(&ToolButton, &mut BackgroundColor)>,
 ) {
     for event in tool_selected_event.iter() {

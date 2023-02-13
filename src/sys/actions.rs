@@ -14,6 +14,8 @@ pub fn action_system(mut game_state: ResMut<GameState>, mut cell_query: Query<&m
             println!("Clearing selection");
             for mut cell in cell_query.iter_mut() {
                 cell.selected = false;
+                cell.focused = false;
+                cell.hovered = false;
             }
         }
         Action::Fill(value) => {
