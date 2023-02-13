@@ -2,6 +2,9 @@
 name = "sudoku"
 version = "0.1.0"
 edition = "2021"
+description = "Sudoku!"
+[package.metadata.bundle]
+identifier = "com.jah2488.sudoku"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
