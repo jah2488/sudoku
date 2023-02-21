@@ -114,6 +114,10 @@ pub fn keyboard_system(keyboard: Res<Input<KeyCode>>, mut game_state: ResMut<Gam
 
     for keycode_tuple in keycodes.iter() {
         if keyboard.any_just_pressed(keycode_tuple.0) {
+            println!(
+                "Key pressed {:?}; action: {}",
+                keycode_tuple.0, keycode_tuple.1
+            );
             match game_state.tool {
                 Tools::CornerMark => {
                     game_state.action = Action::CornerMark(Value::from(keycode_tuple.1));

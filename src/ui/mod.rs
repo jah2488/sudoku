@@ -1,14 +1,19 @@
 use bevy::prelude::*;
 
 use crate::{
-    rsc::game_state::{GameState, Tools},
+    rsc::game_state::{GameState, Markers, Tools},
     sys::{
         grid_update_system::{GridCell, GridLabel},
         text::{ColorText, FpsText},
     },
 };
+#[derive(Component, Clone, Debug, Default)]
+pub struct Location(pub u8);
 #[derive(Component)]
 pub struct ToolButton(pub Tools);
+
+#[derive(Component)]
+pub struct GridMark(pub Markers);
 
 #[derive(Component, Copy, Clone, Debug)]
 pub struct ToolLabel {
@@ -78,6 +83,7 @@ pub fn tool_panel(mut cmd: Commands, game_state: Res<GameState>, asset_server: R
                 ..default()
             },
             background_color: BackgroundColor(game_state.theme.tool.panel_bg),
+            z_index: ZIndex::Global(1),
             ..default()
         },
         Name::new("Tool Panel"),
@@ -132,23 +138,20 @@ pub fn board(mut cmd: Commands, game_state: Res<GameState>, asset_server: Res<As
     cmd.spawn((
         NodeBundle {
             style: Style {
-                size: Size::new(
-                    bevy::ui::Val::Percent(100.0) * 0.4,
-                    bevy::ui::Val::Percent(100.0),
-                ),
+                size: Size::new(bevy::ui::Val::Percent(100.0), bevy::ui::Val::Percent(100.0)),
                 justify_content: JustifyContent::SpaceBetween,
-                border: UiRect::all(Val::Px(5.0)),
+                border: UiRect::all(Val::Px(0.0)),
                 ..default()
             },
-            background_color: BackgroundColor(game_state.theme.grid.cursor),
+            background_color: BackgroundColor(game_state.theme.window_bg),
             ..default()
         },
         Name::new("Grid"),
     ))
     .with_children(|parent| {
         let mut i = 1;
-        let l = 200; // Left Margin
-        let t = 1; // Top Margin
+        let l = 100; // Left Margin
+        let t = 10; // Top Margin
         let w = 100; // Width
         let h = 100; // Height
         let y = 9; // Row Length
@@ -201,6 +204,9 @@ fn spawn_cell(
         NodeBundle {
             style: Style {
                 size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
+                min_size: Size::new(bevy::ui::Val::Px(100.0), bevy::ui::Val::Px(100.0)),
+                margin: UiRect::all(Val::Px(0.0)),
+                padding: UiRect::all(Val::Px(0.0)),
                 position_type: PositionType::Absolute,
                 position: UiRect {
                     left: bevy::ui::Val::Px(x as f32),
@@ -218,11 +224,7 @@ fn spawn_cell(
             x: (i % 9) as u8,
             y: (i / 9) as u8,
             value: 0,
-            selected: false,
-            focused: false,
-            hovered: false,
-            mutable: false,
-            invalid: false,
+            ..Default::default()
         },
         Name::new(i.to_string()),
     ));
@@ -241,6 +243,7 @@ fn spawn_cell(
                         ..default()
                     },
                     background_color: game_state.theme.grid.bg.into(),
+                    z_index: ZIndex::Global(1),
                     ..default()
                 },
                 GridButton,
@@ -252,12 +255,129 @@ fn spawn_cell(
                         i.to_string(),
                         TextStyle {
                             font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 40.0,
+                            font_size: 60.0,
                             color: game_state.theme.grid.text,
                         },
                     ),
                     GridLabel,
                 ));
+                let corners = [
+                    (
+                        "TL",
+                        GridMark(Markers::TL),
+                        UiRect {
+                            top: bevy::ui::Val::Px(0.0),
+                            left: bevy::ui::Val::Px(0.0),
+                            ..default()
+                        },
+                    ),
+                    (
+                        "TR",
+                        GridMark(Markers::TR),
+                        UiRect {
+                            top: bevy::ui::Val::Px(0.0),
+                            right: bevy::ui::Val::Px(0.0),
+                            ..default()
+                        },
+                    ),
+                    (
+                        "BL",
+                        GridMark(Markers::BL),
+                        UiRect {
+                            bottom: bevy::ui::Val::Px(0.0),
+                            left: bevy::ui::Val::Px(0.0),
+                            ..default()
+                        },
+                    ),
+                    (
+                        "BR",
+                        GridMark(Markers::BR),
+                        UiRect {
+                            bottom: bevy::ui::Val::Px(0.0),
+                            right: bevy::ui::Val::Px(0.0),
+                            ..default()
+                        },
+                    ),
+                ];
+                for corner in corners {
+                    parent
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    size: Size::new(
+                                        bevy::ui::Val::Px(33.0),
+                                        bevy::ui::Val::Px(33.0),
+                                    ),
+                                    margin: UiRect::all(Val::Px(0.0)),
+                                    padding: UiRect::all(Val::Px(0.0)),
+                                    position_type: PositionType::Absolute,
+                                    position: corner.2,
+                                    align_items: AlignItems::FlexEnd,
+                                    justify_content: JustifyContent::SpaceAround,
+                                    ..default()
+                                },
+                                background_color: game_state.theme.grid.hover.into(),
+                                ..default()
+                            },
+                            corner.1,
+                            Location(i as u8),
+                            Name::new(corner.0),
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn((
+                                TextBundle::from_section(
+                                    "",
+                                    TextStyle {
+                                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                        font_size: 30.0,
+                                        color: game_state.theme.grid.text,
+                                    },
+                                ),
+                                Location(i as u8),
+                                GridLabel,
+                                Name::new(corner.0),
+                            ));
+                        });
+                }
+                parent
+                    .spawn((
+                        NodeBundle {
+                            style: Style {
+                                size: Size::new(bevy::ui::Val::Px(93.0), bevy::ui::Val::Px(33.3)),
+                                margin: UiRect::all(Val::Px(0.0)),
+                                padding: UiRect::all(Val::Px(0.0)),
+                                position_type: PositionType::Absolute,
+                                position: UiRect {
+                                    left: bevy::ui::Val::Px(0.0),
+                                    bottom: bevy::ui::Val::Px(30.0),
+                                    ..default()
+                                },
+                                align_items: AlignItems::Center,
+                                justify_content: JustifyContent::SpaceAround,
+                                ..default()
+                            },
+                            background_color: game_state.theme.grid.invalid.into(),
+                            ..default()
+                        },
+                        GridMark(Markers::Center),
+                        Location(i as u8),
+                        Name::new("Center Mark"),
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            TextBundle::from_section(
+                                "",
+                                TextStyle {
+                                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                    font_size: 30.0,
+                                    color: game_state.theme.grid.text,
+                                },
+                            ),
+                            Location(i as u8),
+                            GridLabel,
+                            Name::new("Center"),
+                        ));
+                    });
             });
     });
     return cmds.id();

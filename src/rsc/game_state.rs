@@ -7,6 +7,14 @@ use crate::{
 
 use super::colors::Theme;
 
+pub enum Markers {
+    TL,
+    TR,
+    BL,
+    BR,
+    Center,
+}
+
 #[derive(Reflect, Clone, Debug, Default)]
 pub enum Modifier {
     Shift,
@@ -122,7 +130,7 @@ impl GameState {
     }
 
     pub fn redo(&mut self) {
-        if self.history_cursor < self.history.len() - 1 {
+        if self.history.len() > 0 && self.history_cursor < self.history.len() - 1 {
             self.history_cursor += 1;
             self.graph = self.history[self.history_cursor].0.clone();
             self.graph_marked = self.history[self.history_cursor].1.clone();

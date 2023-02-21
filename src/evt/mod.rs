@@ -5,3 +5,5 @@ use crate::{
 
 pub struct ToolSelectedEvent(pub Tools);
 pub struct FocusModeEvent(pub Value);
+
+pub struct CornerMarkEvent(pub u8, pub Value);

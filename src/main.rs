@@ -16,7 +16,7 @@ use ui::{ToolButton, ToolLabel};
 fn main() {
     println!("Welcome to Sudoku!");
     /*
-       TODO: -- Add UI for corner marks
+       TODO: --
        TODO: -- Add UI for center marks
        TODO: -- Add UI to generate a new puzzle with a given difficulty
        TODO: -- Add UI to solve the current puzzle
@@ -56,9 +56,10 @@ fn main() {
             ..default()
         }))
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        // .add_plugin(WorldInspectorPlugin)
+        .add_plugin(WorldInspectorPlugin)
         .add_event::<evt::ToolSelectedEvent>()
         .add_event::<evt::FocusModeEvent>()
+        .add_event::<evt::CornerMarkEvent>()
         .insert_resource(GameState::new(g))
         .add_startup_system(setup)
         .add_startup_system(ui::board.before(sys::grid_fill_system::grid_fill_system))
@@ -68,6 +69,8 @@ fn main() {
         .add_system(sys::button_system::button_system)
         .add_system(sys::grid_update_system::grid_update_system)
         .add_system(sys::grid_update_system::focus_mode_system)
+        .add_system(sys::grid_update_system::corner_mark_system)
+        .add_system(sys::grid_update_system::corner_mark_update_system)
         .add_system(sys::text::text_update_system)
         .add_system(sys::text::text_color_system)
         .add_system(sys::input::keyboard_system)
